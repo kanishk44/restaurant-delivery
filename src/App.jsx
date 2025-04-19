@@ -8,6 +8,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import AdminLayout from "./components/admin/AdminLayout";
 import Login from "./components/admin/Login";
 import Dashboard from "./components/admin/Dashboard";
+import Categories from "./components/admin/Categories";
 import PrivateRoute from "./components/admin/PrivateRoute";
 
 function App() {
@@ -25,6 +26,7 @@ function App() {
             }
           >
             <Route index element={<Dashboard />} />
+            <Route path="categories" element={<Categories />} />
           </Route>
           <Route path="*" element={<Navigate to="/admin" replace />} />
         </Routes>

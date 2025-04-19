@@ -1,4 +1,4 @@
-import { Outlet, useNavigate } from "react-router-dom";
+import { Outlet, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 
 export default function AdminLayout() {
@@ -24,24 +24,24 @@ export default function AdminLayout() {
           </div>
           <nav className="mt-6">
             <div className="px-4 space-y-2">
-              <button
-                onClick={() => navigate("/admin")}
-                className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
+              <Link
+                to="/admin"
+                className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
               >
                 Dashboard
-              </button>
-              <button
-                onClick={() => navigate("/admin/categories")}
-                className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
+              </Link>
+              <Link
+                to="/admin/categories"
+                className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
               >
                 Categories
-              </button>
-              <button
-                onClick={() => navigate("/admin/recipes")}
-                className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
+              </Link>
+              <Link
+                to="/admin/recipes"
+                className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
               >
                 Recipes
-              </button>
+              </Link>
             </div>
           </nav>
           <div className="absolute bottom-0 w-64 p-4">

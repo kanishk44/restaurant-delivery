@@ -6,6 +6,7 @@ import {
   getDocs,
   deleteDoc,
   doc,
+  updateDoc,
 } from "firebase/firestore";
 
 export default function Categories() {
@@ -15,6 +16,7 @@ export default function Categories() {
     image: null,
     imageBase64: "",
   });
+  const [editingCategory, setEditingCategory] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -80,11 +82,19 @@ export default function Categories() {
           // Convert to base64 with quality compression
           const compressedBase64 = canvas.toDataURL("image/jpeg", 0.7);
 
-          setNewCategory({
-            ...newCategory,
-            image: file,
-            imageBase64: compressedBase64,
-          });
+          if (editingCategory) {
+            setEditingCategory({
+              ...editingCategory,
+              image: file,
+              imageBase64: compressedBase64,
+            });
+          } else {
+            setNewCategory({
+              ...newCategory,
+              image: file,
+              imageBase64: compressedBase64,
+            });
+          }
         };
         img.src = event.target.result;
       };
@@ -145,6 +155,63 @@ export default function Categories() {
     }
   };
 
+  const handleEdit = (category) => {
+    setEditingCategory(category);
+    setNewCategory({
+      name: category.name,
+      image: null,
+      imageBase64: category.imageBase64,
+    });
+  };
+
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+
+    if (!newCategory.name.trim()) {
+      setError("Please enter a category name");
+      return;
+    }
+
+    if (!newCategory.imageBase64) {
+      setError("Please upload an image");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      await updateDoc(doc(db, "categories", editingCategory.id), {
+        name: newCategory.name.trim(),
+        imageBase64: newCategory.imageBase64,
+      });
+
+      setCategories(
+        categories.map((cat) =>
+          cat.id === editingCategory.id
+            ? {
+                ...cat,
+                name: newCategory.name.trim(),
+                imageBase64: newCategory.imageBase64,
+              }
+            : cat
+        )
+      );
+
+      setEditingCategory(null);
+      setNewCategory({
+        name: "",
+        image: null,
+        imageBase64: "",
+      });
+    } catch (err) {
+      setError("Failed to update category");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDelete = async (categoryId) => {
     if (!window.confirm("Are you sure you want to delete this category?")) {
       return;
@@ -159,6 +226,15 @@ export default function Categories() {
       setError("Failed to delete category");
       console.error(err);
     }
+  };
+
+  const cancelEdit = () => {
+    setEditingCategory(null);
+    setNewCategory({
+      name: "",
+      image: null,
+      imageBase64: "",
+    });
   };
 
   return (
@@ -178,9 +254,12 @@ export default function Categories() {
 
       <div className="bg-white p-6 rounded-lg shadow">
         <h2 className="text-xl font-semibold text-gray-900 mb-4">
-          Add New Category
+          {editingCategory ? "Edit Category" : "Add New Category"}
         </h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form
+          onSubmit={editingCategory ? handleUpdate : handleSubmit}
+          className="space-y-4"
+        >
           <div>
             <label
               htmlFor="categoryName"
@@ -219,12 +298,12 @@ export default function Categories() {
                 file:text-sm file:font-semibold
                 file:bg-indigo-50 file:text-indigo-700
                 hover:file:bg-indigo-100"
-              required
+              required={!editingCategory}
             />
-            {newCategory.imageBase64 && (
+            {(newCategory.imageBase64 || editingCategory?.imageBase64) && (
               <div className="mt-2">
                 <img
-                  src={newCategory.imageBase64}
+                  src={newCategory.imageBase64 || editingCategory?.imageBase64}
                   alt="Preview"
                   className="h-32 w-32 object-cover rounded"
                 />
@@ -232,13 +311,30 @@ export default function Categories() {
             )}
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-          >
-            {loading ? "Adding..." : "Add Category"}
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              {loading
+                ? editingCategory
+                  ? "Updating..."
+                  : "Adding..."
+                : editingCategory
+                ? "Update Category"
+                : "Add Category"}
+            </button>
+            {editingCategory && (
+              <button
+                type="button"
+                onClick={cancelEdit}
+                className="flex-1 flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                Cancel
+              </button>
+            )}
+          </div>
         </form>
       </div>
 
@@ -257,12 +353,20 @@ export default function Categories() {
               <h3 className="text-lg font-medium text-gray-900">
                 {category.name}
               </h3>
-              <button
-                onClick={() => handleDelete(category.id)}
-                className="mt-2 text-sm text-red-600 hover:text-red-800"
-              >
-                Delete
-              </button>
+              <div className="mt-2 flex gap-2">
+                <button
+                  onClick={() => handleEdit(category)}
+                  className="text-sm text-indigo-600 hover:text-indigo-800"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => handleDelete(category.id)}
+                  className="text-sm text-red-600 hover:text-red-800"
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           </div>
         ))}

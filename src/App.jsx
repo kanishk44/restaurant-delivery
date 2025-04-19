@@ -9,6 +9,7 @@ import AdminLayout from "./components/admin/AdminLayout";
 import Login from "./components/admin/Login";
 import Dashboard from "./components/admin/Dashboard";
 import Categories from "./components/admin/Categories";
+import Recipes from "./components/admin/Recipes";
 import PrivateRoute from "./components/admin/PrivateRoute";
 
 function App() {
@@ -27,6 +28,7 @@ function App() {
           >
             <Route index element={<Dashboard />} />
             <Route path="categories" element={<Categories />} />
+            <Route path="recipes" element={<Recipes />} />
           </Route>
           <Route path="*" element={<Navigate to="/admin" replace />} />
         </Routes>

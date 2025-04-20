@@ -1,8 +1,12 @@
 import { useState, useEffect } from "react";
-import { collection, getDocs, updateDoc, doc } from "firebase/firestore";
+import { useNavigate } from "react-router-dom";
+import { collection, query, where, orderBy, getDocs } from "firebase/firestore";
 import { db } from "../../firebaseConfig";
+import { useUserAuth } from "../../contexts/UserAuthContext";
 
-export default function Orders() {
+export default function OrderHistory() {
+  const { user } = useUserAuth();
+  const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -10,12 +14,18 @@ export default function Orders() {
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const querySnapshot = await getDocs(collection(db, "orders"));
+        const ordersQuery = query(
+          collection(db, "orders"),
+          where("userId", "==", user.uid)
+        );
+        const querySnapshot = await getDocs(ordersQuery);
         const ordersData = querySnapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
           createdAt: doc.data().createdAt?.toDate(),
         }));
+        // Sort orders by date in memory
+        ordersData.sort((a, b) => b.createdAt - a.createdAt);
         setOrders(ordersData);
       } catch (err) {
         setError("Failed to load orders");
@@ -26,22 +36,7 @@ export default function Orders() {
     };
 
     fetchOrders();
-  }, []);
-
-  const handleStatusChange = async (orderId, newStatus) => {
-    try {
-      await updateDoc(doc(db, "orders", orderId), {
-        status: newStatus,
-      });
-      setOrders((prevOrders) =>
-        prevOrders.map((order) =>
-          order.id === orderId ? { ...order, status: newStatus } : order
-        )
-      );
-    } catch (err) {
-      console.error("Error updating order status:", err);
-    }
-  };
+  }, [user.uid]);
 
   const getStatusColor = (status) => {
     switch (status.toLowerCase()) {
@@ -79,14 +74,32 @@ export default function Orders() {
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        <h2 className="text-3xl font-extrabold text-gray-900 mb-8">Orders</h2>
+        <div className="flex justify-between items-center mb-8">
+          <h2 className="text-3xl font-extrabold text-gray-900">
+            Order History
+          </h2>
+          <button
+            onClick={() => navigate("/home")}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+          >
+            Back to Home
+          </button>
+        </div>
 
         {orders.length === 0 ? (
           <div className="text-center py-12">
             <h3 className="text-lg font-medium text-gray-900 mb-2">
               No Orders Found
             </h3>
-            <p className="text-gray-500">There are no orders to display.</p>
+            <p className="text-gray-500 mb-4">
+              You haven't placed any orders yet.
+            </p>
+            <button
+              onClick={() => navigate("/home")}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+            >
+              Browse Recipes
+            </button>
           </div>
         ) : (
           <div className="bg-white shadow overflow-hidden sm:rounded-lg">
@@ -100,26 +113,16 @@ export default function Orders() {
                           Order #{order.id}
                         </p>
                         <div className="ml-2 flex-shrink-0 flex">
-                          <select
-                            value={order.status}
-                            onChange={(e) =>
-                              handleStatusChange(order.id, e.target.value)
-                            }
-                            className={`ml-2 inline-flex text-xs leading-5 font-semibold rounded-full px-2 py-1 ${getStatusColor(
+                          <p
+                            className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(
                               order.status
                             )}`}
                           >
-                            <option value="pending">Pending</option>
-                            <option value="preparing">Preparing</option>
-                            <option value="out for delivery">
-                              Out for Delivery
-                            </option>
-                            <option value="delivered">Delivered</option>
-                            <option value="cancelled">Cancelled</option>
-                          </select>
+                            {order.status}
+                          </p>
                         </div>
                       </div>
-                      <div className="mt-2 flex flex-col sm:flex-row sm:justify-between">
+                      <div className="mt-2 flex justify-between">
                         <div className="sm:flex">
                           <p className="flex items-center text-sm text-gray-500">
                             <span className="truncate">
@@ -138,25 +141,16 @@ export default function Orders() {
                           </p>
                         </div>
                       </div>
-                      <div className="mt-2">
-                        <p className="text-sm text-gray-500">
-                          <span className="font-medium">Delivery Address:</span>
-                          <br />
-                          {order.deliveryAddress.street}
-                          <br />
-                          {order.deliveryAddress.city},{" "}
-                          {order.deliveryAddress.state}{" "}
-                          {order.deliveryAddress.zipCode}
-                          <br />
-                          Phone: {order.deliveryAddress.phone}
-                          {order.deliveryAddress.instructions && (
-                            <>
-                              <br />
-                              Instructions: {order.deliveryAddress.instructions}
-                            </>
-                          )}
-                        </p>
-                      </div>
+                    </div>
+                    <div className="ml-4 flex-shrink-0">
+                      <button
+                        onClick={() =>
+                          navigate(`/order-confirmation/${order.id}`)
+                        }
+                        className="font-medium text-indigo-600 hover:text-indigo-500"
+                      >
+                        View Details
+                      </button>
                     </div>
                   </div>
                 </li>

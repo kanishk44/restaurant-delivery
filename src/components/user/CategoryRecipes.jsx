@@ -2,14 +2,17 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "../../firebaseConfig";
+import { useCart } from "../../contexts/CartContext";
 
 export default function CategoryRecipes() {
   const { categoryId } = useParams();
   const navigate = useNavigate();
+  const { addToCart } = useCart();
   const [category, setCategory] = useState(null);
   const [recipes, setRecipes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [addedToCart, setAddedToCart] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -42,6 +45,12 @@ export default function CategoryRecipes() {
 
     fetchData();
   }, [categoryId]);
+
+  const handleAddToCart = (recipe) => {
+    addToCart(recipe);
+    setAddedToCart(recipe.id);
+    setTimeout(() => setAddedToCart(null), 2000);
+  };
 
   if (loading) {
     return (
@@ -127,8 +136,17 @@ export default function CategoryRecipes() {
                       {recipe.ingredients.length} ingredients
                     </span>
                   </div>
-                  <button className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">
-                    Add to Cart
+                  <button
+                    onClick={() => handleAddToCart(recipe)}
+                    className={`px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200 ${
+                      addedToCart === recipe.id
+                        ? "bg-green-600 text-white"
+                        : "bg-indigo-600 text-white hover:bg-indigo-700"
+                    }`}
+                  >
+                    {addedToCart === recipe.id
+                      ? "Added to Cart!"
+                      : "Add to Cart"}
                   </button>
                 </div>
               </div>

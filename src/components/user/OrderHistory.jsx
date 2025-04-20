@@ -1,32 +1,58 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { collection, query, where, orderBy, getDocs } from "firebase/firestore";
+import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
 import { db } from "../../firebaseConfig";
 import { useUserAuth } from "../../contexts/UserAuthContext";
 
 export default function OrderHistory() {
-  const { user } = useUserAuth();
-  const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const navigate = useNavigate();
+  const { user } = useUserAuth();
 
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const ordersQuery = query(
-          collection(db, "orders"),
-          where("userId", "==", user.uid)
-        );
-        const querySnapshot = await getDocs(ordersQuery);
-        const ordersData = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-          createdAt: doc.data().createdAt?.toDate(),
-        }));
-        // Sort orders by date in memory
-        ordersData.sort((a, b) => b.createdAt - a.createdAt);
-        setOrders(ordersData);
+        // First try with the composite query
+        try {
+          const ordersQuery = query(
+            collection(db, "orders"),
+            where("userId", "==", user.uid),
+            orderBy("createdAt", "desc")
+          );
+          const querySnapshot = await getDocs(ordersQuery);
+          const ordersData = querySnapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+            createdAt: doc.data().createdAt?.toDate(),
+          }));
+          setOrders(ordersData);
+        } catch (err) {
+          if (err.code === "failed-precondition") {
+            // If index error, fall back to simple query and sort in memory
+            const ordersQuery = query(
+              collection(db, "orders"),
+              where("userId", "==", user.uid)
+            );
+            const querySnapshot = await getDocs(ordersQuery);
+            const ordersData = querySnapshot.docs.map((doc) => ({
+              id: doc.id,
+              ...doc.data(),
+              createdAt: doc.data().createdAt?.toDate(),
+            }));
+            // Sort in memory
+            ordersData.sort((a, b) => b.createdAt - a.createdAt);
+            setOrders(ordersData);
+
+            // Show a message about creating the index
+            setError(
+              "To improve performance, please create a Firestore index for orders. Click the link in the error message to create it."
+            );
+          } else {
+            throw err;
+          }
+        }
       } catch (err) {
         setError("Failed to load orders");
         console.error("Error fetching orders:", err);
@@ -66,7 +92,19 @@ export default function OrderHistory() {
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-red-600">{error}</div>
+        <div className="text-center">
+          <div className="text-red-600 mb-4">{error}</div>
+          {error.includes("index") && (
+            <a
+              href="https://console.firebase.google.com/project/_/firestore/indexes"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-indigo-600 hover:text-indigo-500"
+            >
+              Click here to create the required index
+            </a>
+          )}
+        </div>
       </div>
     );
   }
@@ -74,32 +112,16 @@ export default function OrderHistory() {
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h2 className="text-3xl font-extrabold text-gray-900">
-            Order History
-          </h2>
-          <button
-            onClick={() => navigate("/home")}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
-          >
-            Back to Home
-          </button>
-        </div>
+        <h2 className="text-3xl font-extrabold text-gray-900 mb-8">
+          Order History
+        </h2>
 
         {orders.length === 0 ? (
           <div className="text-center py-12">
             <h3 className="text-lg font-medium text-gray-900 mb-2">
               No Orders Found
             </h3>
-            <p className="text-gray-500 mb-4">
-              You haven't placed any orders yet.
-            </p>
-            <button
-              onClick={() => navigate("/home")}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
-            >
-              Browse Recipes
-            </button>
+            <p className="text-gray-500">You haven't placed any orders yet.</p>
           </div>
         ) : (
           <div className="bg-white shadow overflow-hidden sm:rounded-lg">
@@ -113,16 +135,16 @@ export default function OrderHistory() {
                           Order #{order.id}
                         </p>
                         <div className="ml-2 flex-shrink-0 flex">
-                          <p
-                            className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(
+                          <span
+                            className={`inline-flex text-xs leading-5 font-semibold rounded-full px-2 py-1 ${getStatusColor(
                               order.status
                             )}`}
                           >
                             {order.status}
-                          </p>
+                          </span>
                         </div>
                       </div>
-                      <div className="mt-2 flex justify-between">
+                      <div className="mt-2 flex flex-col sm:flex-row sm:justify-between">
                         <div className="sm:flex">
                           <p className="flex items-center text-sm text-gray-500">
                             <span className="truncate">
@@ -141,16 +163,25 @@ export default function OrderHistory() {
                           </p>
                         </div>
                       </div>
-                    </div>
-                    <div className="ml-4 flex-shrink-0">
-                      <button
-                        onClick={() =>
-                          navigate(`/order-confirmation/${order.id}`)
-                        }
-                        className="font-medium text-indigo-600 hover:text-indigo-500"
-                      >
-                        View Details
-                      </button>
+                      <div className="mt-2">
+                        <p className="text-sm text-gray-500">
+                          <span className="font-medium">Delivery Address:</span>
+                          <br />
+                          {order.deliveryAddress.street}
+                          <br />
+                          {order.deliveryAddress.city},{" "}
+                          {order.deliveryAddress.state}{" "}
+                          {order.deliveryAddress.zipCode}
+                          <br />
+                          Phone: {order.deliveryAddress.phone}
+                          {order.deliveryAddress.instructions && (
+                            <>
+                              <br />
+                              Instructions: {order.deliveryAddress.instructions}
+                            </>
+                          )}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </li>

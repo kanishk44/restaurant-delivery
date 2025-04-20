@@ -18,6 +18,9 @@ import UserLogin from "./components/user/Login";
 import UserSignup from "./components/user/SignUp";
 import UserPrivateRoute from "./components/user/PrivateRoute";
 import ForgotPassword from "./components/user/ForgotPassword";
+import Profile from "./components/user/Profile";
+import UserCategories from "./components/user/UserCategories";
+import CategoryRecipes from "./components/user/CategoryRecipes";
 
 function App() {
   return (
@@ -46,14 +49,21 @@ function App() {
             <Route path="/signup" element={<UserSignup />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route
-              path="/home"
+              path="/"
               element={
                 <UserPrivateRoute>
                   <UserLayout />
                 </UserPrivateRoute>
               }
             >
-              {/* User child routes will go here */}
+              <Route index element={<Navigate to="/home" replace />} />
+              <Route path="home" element={<UserCategories />} />
+              <Route
+                path="category/:categoryId"
+                element={<CategoryRecipes />}
+              />
+              <Route path="profile" element={<Profile />} />
+              <Route path="cart" element={<div>Cart Page</div>} />
             </Route>
 
             {/* Root route redirects to user login */}

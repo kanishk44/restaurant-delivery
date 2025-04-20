@@ -47,7 +47,15 @@ export default function CategoryRecipes() {
   }, [categoryId]);
 
   const handleAddToCart = (recipe) => {
-    addToCart(recipe);
+    // Ensure we're passing all necessary data
+    const cartItem = {
+      id: recipe.id,
+      name: recipe.name,
+      price: recipe.price,
+      imageBase64: recipe.imageBase64,
+      quantity: 1,
+    };
+    addToCart(cartItem);
     setAddedToCart(recipe.id);
     setTimeout(() => setAddedToCart(null), 2000);
   };

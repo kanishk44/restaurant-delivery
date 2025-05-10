@@ -1,10 +1,12 @@
 # Restaurant Delivery Web App
 
 A full-featured restaurant delivery web application built with **React**, **Vite**, **Firebase**, and **TailwindCSS**. The app supports both user and admin roles, providing a seamless experience for customers to browse, order, and track food, as well as for admins to manage categories, recipes, and orders.
+Check it out [here](https://restaurant-delivery-ten.vercel.app/)
 
 ## Features
 
 ### User
+
 - **Authentication:** Sign up, log in, and password reset.
 - **Browse Categories:** View food categories and explore recipes.
 - **Cart & Checkout:** Add items to cart, checkout, and receive order confirmation.
@@ -13,6 +15,7 @@ A full-featured restaurant delivery web application built with **React**, **Vite
 - **Protected Routes:** Only authenticated users can access main app features.
 
 ### Admin
+
 - **Authentication:** Secure admin login.
 - **Dashboard:** Overview of orders and activity.
 - **Category Management:** Create, update, and delete food categories.
@@ -39,21 +42,25 @@ A full-featured restaurant delivery web application built with **React**, **Vite
 ### Installation
 
 1. **Clone the repository:**
+
    ```bash
    git clone https://github.com/your-username/restaurant-delivery.git
    cd restaurant-delivery
    ```
 
 2. **Install dependencies:**
+
    ```bash
    npm install
    ```
 
 3. **Set up Firebase:**
+
    - Create a Firebase project at [Firebase Console](https://console.firebase.google.com/).
    - Copy your Firebase config to `src/firebaseConfig.js`.
 
 4. **Start the development server:**
+
    ```bash
    npm run dev
    ```
@@ -74,6 +81,4 @@ A full-featured restaurant delivery web application built with **React**, **Vite
 
 ---
 
-*Built with ❤️ using React, Vite, and Firebase.*
-
-
+_Built with ❤️ using React, Vite, and Firebase._
